@@ -1,6 +1,11 @@
 # currency-converter
 Real-time currency converter web app supporting 160+ currencies with keyword search (country/code) and multi-language UI (Simplified Chinese, Traditional Chinese, English). Built with pure HTML/JS, ready for GitHub Pages.
 
+<img width="428" height="428" alt="屏幕截图 2026-11-11 190528" src="https://github.com/user-attachments/assets/522bbd1b-d724-4910-87a9-8d9447a2f45a" />
+<img width="429" height="433" alt="屏幕截图 2026-11-11 190518" src="https://github.com/user-attachments/assets/04b3cf2b-c85e-46ce-8234-56da06acce72" />
+<img width="427" height="430" alt="屏幕截图 2026-11-11 190506" src="https://github.com/user-attachments/assets/7f4de968-f431-4df3-99f2-32c28a32700a" />
+
+
 實時貨幣換算器網頁應用，支援 160+ 種貨幣、支援國家/代碼關鍵字搜尋，以及多語言切換（繁體、簡體、英文）。純 HTML/JS 打造，完美支援 GitHub Pages 部署。
 
 实时货币换算器网页应用，支持 160+ 种货币、支持国家/代码关键词搜索，以及多语言切换（简体、繁体、英文）。纯 HTML/JS 打造，完美支持 GitHub Pages 部署。
