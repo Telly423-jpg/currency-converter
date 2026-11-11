@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时国际货币换算器 / Real-time Currency Converter</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #0f172a;
+        }
+
+        .lang-select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: #fff;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #64748b;
+        }
+
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .currency-select-box {
+            position: relative;
+        }
+
+        .dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: none;
+        }
+
+        .dropdown-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f1f5f9;
+        }
+
+        .swap-btn {
+            display: block;
+            margin: 10px auto;
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background 0.2s;
+        }
+
+        .swap-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .result-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .result-box .rate-text {
+            font-size: 14px;
+            color: #3b82f6;
+            margin-bottom: 4px;
+        }
+
+        .result-box .val-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e3a8a;
+        }
+
+        .update-time {
+            font-size: 12px;
+            color: #94a3b8;
+            text-align: center;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-bar">
+        <h2 id="title-text">实时货币换算器</h2>
+        <select id="lang-selector" class="lang-select">
+            <option value="zh-Hans">简体中文</option>
+            <option value="zh-Hant">繁體中文</option>
+            <option value="en">English</option>
+        </select>
+    </div>
+
+    <div class="group">
+        <label id="label-amount">金额</label>
+        <input type="number" id="amount" value="1" min="0" step="any">
+    </div>
+
+    <!-- 来源货币 -->
+    <div class="group">
+        <label id="label-from">来源货币（可搜索国家/代码）</label>
+        <div class="currency-select-box">
+            <input type="text" id="from-search" placeholder="搜索...">
+            <div id="from-dropdown" class="dropdown"></div>
+        </div>
+    </div>
+
+    <button class="swap-btn" id="swap-btn" title="切换货币 / Swap">⇅</button>
+
+    <!-- 目标货币 -->
+    <div class="group">
+        <label id="label-to">目标货币（可搜索国家/代码）</label>
+        <div class="currency-select-box">
+            <input type="text" id="to-search" placeholder="搜索...">
+            <div id="to-dropdown" class="dropdown"></div>
+        </div>
+    </div>
+
+    <div class="result-box">
+        <div class="rate-text" id="rate-display">读取中...</div>
+        <div class="val-text" id="result-display">0.00</div>
+    </div>
+
+    <div class="update-time" id="update-time">数据更新时间：--</div>
+</div>
+
+<script>
+// 语言翻译文本配置
+const i18n = {
+    "zh-Hans": {
+        title: "实时货币换算器",
+        amount: "金额",
+        from: "来源货币（可搜索国家/代码）",
+        to: "目标货币（可搜索国家/代码）",
+        placeholder: "搜索：美元、USD、日本...",
+        loading: "实时汇率获取中...",
+        fail: "获取汇率失败",
+        error: "网络错误，无法加载汇率",
+        update: "数据最后更新："
+    },
+    "zh-Hant": {
+        title: "實時貨幣換算器",
+        amount: "金額",
+        from: "來源貨幣（可搜尋國家/代碼）",
+        to: "目標貨幣（可搜尋國家/代碼）",
+        placeholder: "搜尋：美元、USD、日本...",
+        loading: "實時匯率獲取中...",
+        fail: "獲取匯率失敗",
+        error: "網路錯誤，無法載入匯率",
+        update: "資料最後更新："
+    },
+    "en": {
+        title: "Real-time Converter",
+        amount: "Amount",
+        from: "From (Search country/code)",
+        to: "To (Search country/code)",
+        placeholder: "Search: USD, Japan, Euro...",
+        loading: "Fetching exchange rates...",
+        fail: "Failed to fetch rates",
+        error: "Network error, cannot load rates",
+        update: "Last updated: "
+    }
+};
+
+// 货币清单与多语言对照
+const currencies = [
+    { code: "USD", name: { "zh-Hans": "美元", "zh-Hant": "美元", "en": "US Dollar" }, country: { "zh-Hans": "美国", "zh-Hant": "美國", "en": "USA" } },
+    { code: "TWD", name: { "zh-Hans": "新台币", "zh-Hant": "新台幣", "en": "Taiwan Dollar" }, country: { "zh-Hans": "台湾", "zh-Hant": "台灣", "en": "Taiwan" } },
+    { code: "CNY", name: { "zh-Hans": "人民币", "zh-Hant": "人民幣", "en": "Chinese Yuan" }, country: { "zh-Hans": "中国", "zh-Hant": "中國", "en": "China" } },
+    { code: "JPY", name: { "zh-Hans": "日元", "zh-Hant": "日圓", "en": "Japanese Yen" }, country: { "zh-Hans": "日本", "zh-Hant": "日本", "en": "Japan" } },
+    { code: "EUR", name: { "zh-Hans": "欧元", "zh-Hant": "歐元", "en": "Euro" }, country: { "zh-Hans": "欧洲地区", "zh-Hant": "歐洲地區", "en": "Eurozone" } },
+    { code: "HKD", name: { "zh-Hans": "港币", "zh-Hant": "港幣", "en": "Hong Kong Dollar" }, country: { "zh-Hans": "香港", "zh-Hant": "香港", "en": "Hong Kong" } },
+    { code: "KRW", name: { "zh-Hans": "韩元", "zh-Hant": "韓元", "en": "South Korean Won" }, country: { "zh-Hans": "韩国", "zh-Hant": "韓國", "en": "South Korea" } },
+    { code: "GBP", name: { "zh-Hans": "英镑", "zh-Hant": "英鎊", "en": "British Pound" }, country: { "zh-Hans": "英国", "zh-Hant": "英國", "en": "UK" } },
+    { code: "AUD", name: { "zh-Hans": "澳元", "zh-Hant": "澳幣", "en": "Australian Dollar" }, country: { "zh-Hans": "澳大利亚", "zh-Hant": "澳洲", "en": "Australia" } },
+    { code: "CAD", name: { "zh-Hans": "加元", "zh-Hant": "加幣", "en": "Canadian Dollar" }, country: { "zh-Hans": "加拿大", "zh-Hant": "加拿大", "en": "Canada" } },
+    { code: "SGD", name: { "zh-Hans": "新加坡元", "zh-Hant": "新加坡幣", "en": "Singapore Dollar" }, country: { "zh-Hans": "新加坡", "zh-Hant": "新加坡", "en": "Singapore" } },
+    { code: "THB", name: { "zh-Hans": "泰铢", "zh-Hant": "泰銖", "en": "Thai Baht" }, country: { "zh-Hans": "泰国", "zh-Hant": "泰國", "en": "Thailand" } },
+    { code: "CHF", name: { "zh-Hans": "瑞士法郎", "zh-Hant": "瑞士法郎", "en": "Swiss Franc" }, country: { "zh-Hans": "瑞士", "zh-Hant": "瑞士", "en": "Switzerland" } },
+    { code: "NZD", name: { "zh-Hans": "新西兰元", "zh-Hant": "紐西蘭幣", "en": "New Zealand Dollar" }, country: { "zh-Hans": "新西兰", "zh-Hant": "紐西蘭", "en": "New Zealand" } },
+    { code: "PHP", name: { "zh-Hans": "菲律宾比索", "zh-Hant": "菲律賓披索", "en": "Philippine Peso" }, country: { "zh-Hans": "菲律宾", "zh-Hant": "菲律賓", "en": "Philippines" } },
+    { code: "MYR", name: { "zh-Hans": "马来西亚林吉特", "zh-Hant": "馬來西亞令吉", "en": "Malaysian Ringgit" }, country: { "zh-Hans": "马来西亚", "zh-Hant": "馬來西亞", "en": "Malaysia" } },
+    { code: "IDR", name: { "zh-Hans": "印尼盾", "zh-Hant": "印尼盾", "en": "Indonesian Rupiah" }, country: { "zh-Hans": "印度尼西亚", "zh-Hant": "印尼", "en": "Indonesia" } },
+    { code: "VND", name: { "zh-Hans": "越南盾", "zh-Hant": "越南盾", "en": "Vietnamese Dong" }, country: { "zh-Hans": "越南", "zh-Hant": "越南", "en": "Vietnam" } }
+];
+
+let currentLang = "zh-Hans";
+let selectedFrom = "USD";
+let selectedTo = "CNY";
+let ratesData = {};
+let lastUpdateUnix = 0;
+
+document.addEventListener("DOMContentLoaded", () => {
+    const langSelect = document.getElementById("lang-selector");
+    langSelect.addEventListener("change", (e) => {
+        currentLang = e.target.value;
+        updateUI();
+    });
+
+    setupSearchInput("from-search", "from-dropdown", (code) => {
+        selectedFrom = code;
+        fetchRates();
+    });
+    
+    setupSearchInput("to-search", "to-dropdown", (code) => {
+        selectedTo = code;
+        calculate();
+    });
+
+    document.getElementById("amount").addEventListener("input", calculate);
+    document.getElementById("swap-btn").addEventListener("click", swapCurrencies);
+
+    updateUI();
+    fetchRates();
+});
+
+// 更新全界面文字
+function updateUI() {
+    const text = i18n[currentLang];
+    document.getElementById("title-text").textContent = text.title;
+    document.getElementById("label-amount").textContent = text.amount;
+    document.getElementById("label-from").textContent = text.from;
+    document.getElementById("label-to").textContent = text.to;
+    document.getElementById("from-search").placeholder = text.placeholder;
+    document.getElementById("to-search").placeholder = text.placeholder;
+
+    setSearchInputValue("from-search", selectedFrom);
+    setSearchInputValue("to-search", selectedTo);
+
+    if (lastUpdateUnix) {
+        const dateStr = new Date(lastUpdateUnix * 1000).toLocaleString(currentLang === 'en' ? 'en-US' : 'zh-CN');
+        document.getElementById("update-time").textContent = `${text.update}${dateStr}`;
+    }
+
+    calculate();
+}
+
+function getCurrencyLabel(c) {
+    const name = c.name[currentLang] || c.name["en"];
+    return `${c.code} - ${name}`;
+}
+
+function setupSearchInput(inputId, dropdownId, onSelect) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+
+    function renderOptions(filter = "") {
+        dropdown.innerHTML = "";
+        const query = filter.toLowerCase().trim();
+        const filtered = currencies.filter(c => {
+            const name = (c.name[currentLang] || "").toLowerCase();
+            const country = (c.country[currentLang] || "").toLowerCase();
+            const code = c.code.toLowerCase();
+            return code.includes(query) || name.includes(query) || country.includes(query);
+        });
+
+        if (filtered.length === 0) {
+            dropdown.style.display = "none";
+            return;
+        }
+
+        filtered.forEach(c => {
+            const item = document.createElement("div");
+            item.className = "dropdown-item";
+            item.textContent = getCurrencyLabel(c);
+            item.addEventListener("mousedown", (e) => {
+                e.preventDefault();
+                input.value = getCurrencyLabel(c);
+                dropdown.style.display = "none";
+                onSelect(c.code);
+            });
+            dropdown.appendChild(item);
+        });
+
+        dropdown.style.display = "block";
+    }
+
+    input.addEventListener("focus", () => renderOptions(input.value));
+    input.addEventListener("input", () => renderOptions(input.value));
+    input.addEventListener("blur", () => {
+        setTimeout(() => dropdown.style.display = "none", 150);
+    });
+}
+
+function setSearchInputValue(inputId, code) {
+    const item = currencies.find(c => c.code === code);
+    if (item) {
+        document.getElementById(inputId).value = getCurrencyLabel(item);
+    }
+}
+
+async function fetchRates() {
+    try {
+        document.getElementById("rate-display").textContent = i18n[currentLang].loading;
+        const res = await fetch(`https://open.er-api.com/v6/latest/${selectedFrom}`);
+        const data = await res.json();
+
+        if (data.result === "success") {
+            ratesData = data.rates;
+            lastUpdateUnix = data.time_last_update_unix;
+            const dateStr = new Date(lastUpdateUnix * 1000).toLocaleString(currentLang === 'en' ? 'en-US' : 'zh-CN');
+            document.getElementById("update-time").textContent = `${i18n[currentLang].update}${dateStr}`;
+            calculate();
+        } else {
+            document.getElementById("rate-display").textContent = i18n[currentLang].fail;
+        }
+    } catch (err) {
+        document.getElementById("rate-display").textContent = i18n[currentLang].error;
+    }
+}
+
+function calculate() {
+    const amount = parseFloat(document.getElementById("amount").value) || 0;
+    const rate = ratesData[selectedTo];
+
+    if (rate) {
+        const result = amount * rate;
+        document.getElementById("rate-display").textContent = `1 ${selectedFrom} = ${rate.toFixed(4)} ${selectedTo}`;
+        document.getElementById("result-display").textContent = `${result.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${selectedTo}`;
+    }
+}
+
+function swapCurrencies() {
+    const temp = selectedFrom;
+    selectedFrom = selectedTo;
+    selectedTo = temp;
+
+    setSearchInputValue("from-search", selectedFrom);
+    setSearchInputValue("to-search", selectedTo);
+
+    fetchRates();
+}
+</script>
+
+</body>
+</html>
